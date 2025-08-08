@@ -1,0 +1,293 @@
+---
+alwaysApply: true
+---
+
+# Building Applications with Concept Design
+
+This repository is an application meant to be built according to the principles
+of concept design, a new approach to modularity first introduced in Daniel
+Jackson's "The Essence of Software". This approach describes a way to build
+software in terms of _concepts_, which describe behavior that captures a
+familiar unit of functionality with a single purpose. These are then composed
+together using _synchronizations_, which are declarative statements that
+describe how actions of different concepts are composed.
+
+# Concepts
+
+A concept is a highly-reusable and standalone service designed to fulfill a
+single purpose. Unlike microservices or traditional OOP classes, concepts
+**must** remain independent from one another and cannot import or reference
+other concepts. They can be specified using a simple specification language and
+stored as `.concept` files, such as:
+
+```
+<concept_spec>
+
+concept User
+
+purpose 
+    to associate identifying information with individuals
+
+state
+    a set of Users with
+        a name String
+        an email String
+
+actions
+    register (user: Users, name: String, email: String) : (user: Users)
+        associate user with users
+        associate name and email if both unique and valid
+        return the user reference
+    register (user: Users, name: String, email: String) : (error: String)
+        if either name or email is invalid or not unique, describe error
+        return the error description
+
+    update (user: Users, name: String) : (user: Users)
+        if name is unique, update user's name
+        return the user reference
+    update (user: Users, name: String) : (error: String)
+        if name is not-unique, describe error
+        return the error description
+
+    update (user: Users, email: String) : (user: Users)
+        if email is unique and valid, update id's email
+        return the user reference
+    update (user: Users, email: String) : (error: String)
+        if email is not-unique or invalid, describe error
+        return the error description
+
+operational principle
+    after register () : (user: x) and update (name: "xavier") : (user: x)
+    for any user u such that u's name is "xavier", u must be x
+
+</concept_spec>
+```
+
+- `concept`: A unique name for the concept.
+- `purpose`: A carefully crafted description of the concept's purpose and what
+  problem it solves.
+- `state`: A specification of the shape of the state the concept holds. Refer to
+  the `concept-state-specification.mdc` rule to find the details of Simple State
+  Form (SSF), the language of this specification.
+- `actions`: Descriptions of actions, which are how the concept evolves its
+  state, and the only way to perform side-effects and behavior. The lines at the
+  first level of indentation are action signatures, and describe the inputs
+  (before the `:`) and the outputs (after the `:`) as a map from names to types.
+  Therefore, every concept implementation standardizes on exactly one input
+  argument as a map/record/object (depending on the language) with named keys to
+  values of the specified type. Generic "object" types like `Users` are _not_
+  complex references to objects, but all simply IDs, usually UUIDs as strings.
+  The text below each signature at the next level of indentation are vernacular
+  descriptions of the effect that the action has, and usually describe what to
+  expect from the return values.
+- `operational principle`: A description of a scenario that demonstrates how the
+  concept can fulfill its purpose through its actions and state. It need not
+  completely cover all actions/state, but instead is designed to capture the
+  essence of why this particular design for the concept helps fulfill the
+  purpose. In this case, the scenario describes how the related state of the
+  concept, such as the `name` field, helps uniquely identify the same
+  individual.
+
+## Designing Concepts
+
+The `User` concept example above highlights a number of key considerations when
+designing concepts:
+
+- **Single, focused purpose:** A typical User service or class might contain a
+  lot more kinds of information pertaining to users, such as passwords
+  (`Authentication`), bio or avatar images (`Profile`), or any other number of
+  user related concerns. As pointed out in the parentheses in the previous
+  sentence, these concerns are actually better modeled as separate concepts.
+  This is motivated by the fact that every application can have different
+  requirements: some apps might not have authentication at all, while some may
+  lack certain kinds of `Profile` related information like bios. If your `User`
+  class/service/concept models such information, it is thus inherently less
+  modular and cannot be directly shared. Instead, this design for `User` focuses
+  solely on the idea that every application including it needs a simple mapping
+  from user identifiers to uniquely identifying fields like usernames or email
+  addresses. An additional subtlety is that the `register` action actually takes
+  in the unique ID (the `user` argument), instead of arbitrarily generating its
+  own scheme. This further modularizes this concept, and allows it to support
+  any set of applications with different unique identification schemes.
+- **Actions that thoroughly describe all possible outcomes:** A unique feature
+  of the action descriptions above is that they overload (on the same action
+  name) for all the possible kinds of transitions and arguments. Since all
+  actions are simply functions that take an input map and output a map, the
+  shape found in each signature is exactly the shape of the map that you can
+  expect. This explicitly spells out the different kinds of arguments that an
+  `update` method can handle, as well as specifying what can happen as a result.
+- **Errors are not special:** Following from the explicit transitions of the
+  previous point, all errors are simply just another pattern specified by the
+  concept specification. Here, we use the convention that if an output map
+  contains the `error:` key, then an error is considered to have happened. This
+  is not special, and allows us to model any number of conditions, and match on
+  the for the purposes of processing errors or unusual outcomes, as we will see
+  in the synchronizations.
+
+# Synchronizations
+
+The idea of purely independent modules serving single purposes is both appealing
+and very old - why aren't more applications built in a similar fashion? As with
+any application of non-trivial size, structures for software today inevitably
+result in complicated dependency structures, build systems, and other layers of
+abstraction that entangle otherwise independent pieces. _Synchronizations_ are a
+new mechanism for composition that enable a very granular and incremental way to
+specify composite behavior between completely independent components like
+concepts. The tradeoff is the need to explicitly specify all conditions and
+paths of execution, but you gain the ability to modify exactly the behavior you
+are targeting without affecting the integrity of the rest of the system.
+
+Consider three very simple concepts:
+
+- `Counter`: has the actions `increment {}` and `decrement {}`, and stores a
+  single state `count`.
+- `Button`: has the action `clicked {kind: string}` that is simply a proxy for a
+  button clicked of the kind `kind`.
+- `Notification`: has the action `notify {message: string}`, which sends a
+  notification with the specified message.
+
+What if we wanted to specify the following two behaviors:
+
+- **when** a `Button` of the `kind: "increment_counter"` is `clicked`, **then**
+  the `Counter` should `increment`
+- **when** that same `Button` is clicked, _and_ `Counter.increment` happens,
+  **where** `count` is above 10, **then** `Notify.notification` with the message
+  that we reached 10.
+
+The synchronization language allows us to model these two behaviors exactly as
+we have written them as the following two granular synchronizations:
+
+```
+<sync>
+
+sync ButtonIncrement
+when
+    Button.clicked (kind: "increment_counter") : ()
+then
+    Counter.increment ()
+
+sync NotifyWhenReachTen
+when
+    Button.clicked (kind: "increment_counter") : ()
+    Counter.increment () : ()
+where
+    Counter._getCount () : (count: count)
+    count > 10
+then
+    Notification.notify (message: "Reached 10")
+    
+</sync>
+```
+
+Each keyword refers to:
+
+- `sync`: A unique identifier for the sync.
+- `when`: A number of actions and their input/arguments to match. You can match
+  both literals as above, as well as variables, which are just symbols like
+  `count`. The left hand side is the same as the keys described in the actions,
+  while the right hand side allows you to specify a different name (or the same)
+  for the variable.
+- `where`: An optional clause that allows further processing and filtering of
+  results. You may only refer to query functions of concepts, indicated by the
+  mandatory starting underscore `_`, and use the input/output arguments to map
+  to variables to bind and perform logic on.
+- `then`: A number of actions that, if there are variables, are bound based on
+  the declarative logic throughout, and which form new action invocations
+  exactly of the shape specified.
+
+## Designing Synchronizations
+
+Synchronizations have a number of interesting properties that enable their
+granularity and incrementality:
+
+- **Conditioning on multiple actions:** Unlike many systems with graphical
+  pipeline builders and other approaches that allow you to chain actions
+  together, synchronizations allow you to condition on **multiple** actions
+  which share an inherent notion of **flow**. In this case, you might wonder why
+  the notification needs to condition on both the button click and the counter
+  incrementing, where just one or the other might suffice. Specifying both
+  allows you to robustly condition on the idea that we'd like to notify only
+  when a counter has been successfully incremented _because_ of the
+  `"increment_counter"` button. This is robust even if our application evolves
+  such that `ButtonIncrement` is updated, and we may limit the number of times
+  you can press a button: conditioning on only the click would still result in a
+  notification. On the other hand, conditioning only on the increment would
+  generate extra notifications if there were other ways to increment the
+  counter.
+- **The idea of flow:** But how are action occurrences grouped together? In a
+  large application, we can imagine there being a ton of buttons clicked and
+  counters incremented - which ones are grouped? **Flow** is the idea that
+  actions that directly caused other actions through synchronizations all share
+  the same unique **flow token**, a UUID that groups all such actions to
+  consider for the `when` clause. A new **flow** is initiated whenever an
+  external force (like a user) causes an action, and all subsequent automatic
+  synchronizations will propagate that flow token. You can think of it like a
+  logical grouping or scope of execution, and an explicit way to model a large
+  lexical scope in a block of code in a more traditional programming language.
+- **Separation of read and write:** Synchronizations strongly separate
+  side-effecting actions from pure computations (like querying and filtering) by
+  construction: any query functions in the `where` clause must be pure, and all
+  side-effects are isolated into the invocations constructed by the `then`
+  clause with exactly the specified shape. Note that the `when` clause will
+  always have action patterns that have both input and output (denoted by the
+  two records around the `:`), since it talks about conditioning on action
+  **completions**, while the `then` clause will always only have **invocations**
+  with only the shape of an input (and thus no `:` and only one record).
+
+# Entry Point: Bootstrap Concepts
+
+If an application is made entirely of concepts and synchronizations, and
+therefore composed in a horizontal and flat way, then what is the entry point? A
+concept can be considered a **bootstrap concept** if it is intended to be called
+by an external actor, such as a user, or from an otherwise independent frontend
+application treating the entire backend as a single opaque API, and without
+knowledge that it is otherwise powered by concepts and synchronizations. For the
+latter, an example concept might be:
+
+```
+<concept_spec>
+
+concept API
+purpose
+    to bootstrap generic API requests and allow asynchronous responses
+state
+    a set of Requests with
+        a callback Function
+        an Input set of Parameters
+        an Output set of Parameters
+    a set of Parameters with
+        ...any arguments...
+actions
+    request (callback: Function, ...any input arguments...) : (request: Requests)
+        generate a fresh request associated with the input arguments
+        register the callback with the request ID
+        return the request ID
+    response (request: Requests, ...any output arguments...) : (request: Requests)
+        save the output arguments, and await the callback to give them to the requester
+        return the request ID
+
+</concept_spec>
+```
+
+This concept allows synchronizations against the initial `request`, with any
+shape of arguments, and usually with explicit modeling in the parameters like
+`method: "user_registration"` or `path: "/api/users", method: "GET"` to pattern
+match on the intended route. This can cascade a series of actions, and keeping
+this `request` pattern as one of the `when` conditions allows for a route
+specific set of synchronizations to model behavior. Finally, an `API.response`
+in a `then` allows for giving control back to the calling party.
+
+There can be many other ways in which such a bootstrap concept enables external
+interaction, but this pattern is the simplest for establishing a classic
+backend/frontend kind of separation at the API level.
+
+# Implementation
+
+For actually implementing synchronizations in this application, refer to the
+following:
+
+@synchronization-implementation.mdc
+
+For actually implementing concepts in this application, refer to the following:
+
+@concept-implementation.mdc
