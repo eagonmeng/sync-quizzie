@@ -1,10 +1,7 @@
-// Deno specific helper functions
-
-import { generate } from "jsr:@std/uuid/unstable-v7";
-// For node, edit to export util.inspect
+// Node helper functions
 export { inspect } from "node:util";
+import { randomUUID } from "node:crypto";
 
-// For node, edit to use crypto.randomUUID()
 export function uuid() {
-    return generate();
+    return randomUUID();
 }

@@ -1,6 +1,5 @@
 ---
-description: Details about how to implement concepts as code
-alwaysApply: false
+alwaysApply: true
 ---
 
 ## Implementing Concepts

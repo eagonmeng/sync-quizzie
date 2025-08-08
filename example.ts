@@ -1,3 +1,4 @@
+// Basic, complete example of how to use the engine
 import {
     actions,
     Empty,

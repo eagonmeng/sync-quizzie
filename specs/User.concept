@@ -1,0 +1,33 @@
+<concept_spec>
+
+concept User
+
+purpose
+    to represent people who own quizzes or participate in them
+
+state
+    a set of Users with
+        a user String
+        a name String
+
+actions
+    register (user: String, name: String) : (user: String)
+        associate user with name if not already present
+        return the user id
+    rename (user: String, name: String) : (user: String)
+        update the human-readable name
+        return the user id
+
+queries
+    _getById (user: String) : (user: String, name: String)
+        return the user and name if present
+    _getByName (name: String) : (user: String)
+        return the user id with the specified name if present
+
+operational principle
+    after register (user: u1, name: "Daniel") : (user: u1)
+    and _getByName (name: "Daniel") : (user: u1)
+    for any user u where u's name is "Daniel", u must be u1
+
+</concept_spec>
+

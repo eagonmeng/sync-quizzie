@@ -1,6 +1,5 @@
 ---
-description: For writing, implementing, and understanding synchronizations
-alwaysApply: false
+alwaysApply: true
 ---
 
 ## Implementing Synchronizations

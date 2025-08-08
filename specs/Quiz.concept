@@ -1,0 +1,66 @@
+<concept_spec>
+
+concept Quiz
+
+purpose
+    to allow a user to create quizzes with questions and options
+
+state
+    a set of Quizzes with
+        a quiz String
+        an owner String
+        a title String
+    a set of Questions with
+        a question String
+        a quiz String
+        a text String
+    a set of Options with
+        an option String
+        a question String
+        a label String
+
+actions
+    createQuiz (quiz: String, owner: String, title: String) : (quiz: String)
+        create a new quiz for owner with title
+        return quiz
+    deleteQuiz (quiz: String) : (quiz: String)
+        delete the quiz and all linked questions and options
+        return quiz
+    addQuestion (question: String, quiz: String, text: String) : (question: String)
+        add a question to quiz with text
+        return question
+    deleteQuestion (question: String) : (question: String)
+        delete question and its options
+        return question
+    renameQuestion (question: String, text: String) : (question: String)
+        update the text of a question
+        return question
+    addOption (option: String, question: String, label: String) : (option: String)
+        add an option to question with label text
+        return option
+    deleteOption (option: String) : (option: String)
+        delete option
+        return option
+    renameOption (option: String, label: String) : (option: String)
+        update option label
+        return option
+
+queries
+    _getQuizzesByOwner (owner: String) : (quiz: String, title: String)
+        list quizzes owned by owner
+    _getQuiz (quiz: String) : (quiz: String, owner: String, title: String)
+        get quiz
+    _getQuestions (quiz: String) : (question: String, text: String)
+        list questions for quiz
+    _getOptions (question: String) : (option: String, label: String)
+        list options for question
+
+operational principle
+    after createQuiz (quiz: q, owner: u, title: "My first quiz") : (quiz: q)
+    and addQuestion (question: s1, quiz: q, text: "What day is it today?") : (question: s1)
+    and addOption (option: o1, question: s1, label: "Sunday") : (option: o1)
+    and addOption (option: o2, question: s1, label: "Monday") : (option: o2)
+    then _getOptions (question: s1) lists o1 and o2 with their labels
+
+</concept_spec>
+

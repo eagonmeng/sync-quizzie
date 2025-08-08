@@ -1,0 +1,34 @@
+<concept_spec>
+
+concept API
+
+purpose
+    to bootstrap HTTP-like requests and capture async responses from the web app
+
+state
+    a set of Requests with
+        a request String
+        a method String
+        a path String
+        a input Json
+        a output Json
+
+actions
+    request (request: String, method: String, path: String, input: Json) : (request: String)
+        register an incoming request to start a new flow
+        return request
+    response (request: String, output: Json) : (request: String)
+        record the output that should be returned to the caller
+        return request
+
+queries
+    _get (request: String) : (request: String, method: String, path: String, input: Json, output: Json)
+        fetch a stored request with output
+
+operational principle
+    after request (request: r, method: "POST", path: "/quizzes", input: {}) : (request: r)
+    and response (request: r, output: { ok: true }) : (request: r)
+    then _get (request: r) shows output { ok: true }
+
+</concept_spec>
+

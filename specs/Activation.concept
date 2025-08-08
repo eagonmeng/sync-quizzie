@@ -1,0 +1,51 @@
+<concept_spec>
+
+concept Activation
+
+purpose
+    to manage live sessions of a question so audiences can vote and see results
+
+state
+    a set of Activations with
+        an activation String
+        a question String
+        a isActive Boolean
+        a showResults Boolean
+    a set of Votes with
+        an activation String
+        a user String
+        an option String
+
+actions
+    activate (activation: String, question: String) : (activation: String)
+        create an activation for the question and mark active
+        return activation
+    deactivate (activation: String) : (activation: String)
+        mark activation inactive
+        return activation
+    show (activation: String) : (activation: String)
+        set showResults true
+        return activation
+    hide (activation: String) : (activation: String)
+        set showResults false
+        return activation
+    choose (activation: String, user: String, option: String) : (activation: String)
+        record that user chose option in activation, replacing any prior choice for same user
+        return activation
+
+queries
+    _getByQuestion (question: String) : (activation: String, isActive: Boolean, showResults: Boolean)
+        return any activations for question
+    _getVotes (activation: String) : (option: String, count: Number, total: Number)
+        return counts per option and total voters
+    _getUserVote (activation: String, user: String) : (option: String)
+        return the option currently chosen by user if any
+
+operational principle
+    after activate (activation: a, question: q) : (activation: a)
+    and choose (activation: a, user: u1, option: o1) : (activation: a)
+    and choose (activation: a, user: u2, option: o2) : (activation: a)
+    then _getVotes (activation: a) reports counts where total is 2
+
+</concept_spec>
+
