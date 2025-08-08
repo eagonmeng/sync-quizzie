@@ -116,3 +116,4 @@ export class ActivationConcept {
         return rec ? [{ ...rec }] : [];
     }
 }
+

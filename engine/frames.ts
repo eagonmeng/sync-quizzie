@@ -14,6 +14,22 @@ type ExtractSymbolMappings<TOutputMapping, TFunctionOutput> = {
 };
 
 export interface Frames<TFrame extends Frame = Frame> {
+    map<U extends Frame>(
+        callbackfn: (
+            value: TFrame,
+            index: number,
+            array: TFrame[],
+        ) => U,
+        thisArg?: unknown,
+    ): Frames<U>;
+    map<U>(
+        callbackfn: (
+            value: TFrame,
+            index: number,
+            array: TFrame[],
+        ) => U,
+        thisArg?: unknown,
+    ): U[];
     filter<S extends TFrame>(
         predicate: (
             value: TFrame,
@@ -26,6 +42,40 @@ export interface Frames<TFrame extends Frame = Frame> {
         predicate: (value: TFrame, index: number, array: TFrame[]) => unknown,
         thisArg?: unknown,
     ): this;
+
+    flatMap<U extends Frame>(
+        callback: (
+            value: TFrame,
+            index: number,
+            array: TFrame[],
+        ) => U | ReadonlyArray<U>,
+        thisArg?: unknown,
+    ): Frames<U>;
+    flatMap<U>(
+        callback: (
+            value: TFrame,
+            index: number,
+            array: TFrame[],
+        ) => U | ReadonlyArray<U>,
+        thisArg?: unknown,
+    ): U[];
+
+    find<S extends TFrame>(
+        predicate: (
+            value: TFrame,
+            index: number,
+            array: TFrame[],
+        ) => value is S,
+        thisArg?: unknown,
+    ): S | undefined;
+    find(
+        predicate: (
+            value: TFrame,
+            index: number,
+            array: TFrame[],
+        ) => unknown,
+        thisArg?: unknown,
+    ): TFrame | undefined;
 
     slice(start?: number, end?: number): this;
 

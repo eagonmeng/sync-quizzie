@@ -18,7 +18,7 @@ export class CounterConcept {
         this.count--;
         return {};
     }
-    _getCount(_: {}): { count: number }[] {
+    _getCount(_: Record<PropertyKey, never>): { count: number }[] {
         return [{ count: this.count }];
     }
 }
@@ -66,13 +66,10 @@ const NotifyWhenReachTen = ({ count }: Vars) => ({
         [Button.clicked, { kind: "increment_counter" }, {}],
         [Counter.increment, {}, {}],
     ),
-    where: (frames: Frames): Frames => {
-        return frames
+    where: (frames: Frames): Frames =>
+        frames
             .query(Counter._getCount, {}, { count })
-            .filter(($) => {
-                return $[count] > 10;
-            });
-    },
+            .filter(($) => $[count] > 10),
     then: actions(
         [Notification.notify, { message: "Reached 10" }],
     ),
