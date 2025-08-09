@@ -98,7 +98,11 @@ export class Frames<TFrame extends Frame = Frame> extends Array<TFrame> {
                 const value = Reflect.get(target, prop, receiver);
 
                 // Only intercept function calls that might return arrays
-                if (typeof value === "function" && prop !== "query") {
+                if (
+                    typeof value === "function" &&
+                    prop !== "query" &&
+                    prop !== "queryAsync"
+                ) {
                     return function (this: Frames<TFrame>, ...args: unknown[]) {
                         const result = value.apply(this, args);
 
@@ -118,6 +122,7 @@ export class Frames<TFrame extends Frame = Frame> extends Array<TFrame> {
         });
     }
 
+    // Overloads: sync and async query function variants
     query<
         TFunction extends (...args: never[]) => unknown[],
         TInputMapping extends Record<string, unknown>,
@@ -130,7 +135,106 @@ export class Frames<TFrame extends Frame = Frame> extends Array<TFrame> {
         f: TFunction,
         input: TInputMapping,
         output: TOutputMapping,
-    ): Frames<TNewFrame> {
+    ): Frames<TNewFrame>;
+    query<
+        TFunction extends (...args: never[]) => Promise<unknown[]>,
+        TInputMapping extends Record<string, unknown>,
+        TOutputMapping extends Record<string, symbol>,
+        TFunctionOutput = Awaited<ReturnType<TFunction>> extends (infer U)[] ? U
+            : never,
+        TNewFrame extends Frame =
+            & TFrame
+            & ExtractSymbolMappings<TOutputMapping, TFunctionOutput>,
+    >(
+        f: TFunction,
+        input: TInputMapping,
+        output: TOutputMapping,
+    ): Promise<Frames<TNewFrame>>;
+    query(
+        f: (...args: never[]) => unknown[] | Promise<unknown[]>,
+        input: Record<string, unknown>,
+        output: Record<string, symbol>,
+    ): Frames | Promise<Frames> {
+        const result = new Frames();
+        const promises: Promise<void>[] = [];
+
+        const processOutputs = (
+            frame: Frame,
+            functionOutputArray: unknown[],
+        ) => {
+            for (const functionOutput of functionOutputArray) {
+                const newFrame = { ...frame };
+                for (const [outputKey, symbolKey] of Object.entries(output)) {
+                    if (
+                        typeof symbolKey === "symbol" &&
+                        functionOutput &&
+                        typeof functionOutput === "object" &&
+                        outputKey in functionOutput
+                    ) {
+                        (newFrame as Record<symbol, unknown>)[symbolKey] =
+                            (functionOutput as Record<string, unknown>)[
+                                outputKey
+                            ];
+                    }
+                }
+                result.push(newFrame as unknown as Frame);
+            }
+        };
+
+        for (const frame of this) {
+            const entries: [string, unknown][] = [];
+            for (const [key, binding] of Object.entries(input)) {
+                let value: unknown = binding;
+                if (typeof binding === "symbol") {
+                    const bound = (frame as Record<symbol, unknown>)[binding];
+                    if (bound === undefined) {
+                        throw new Error(
+                            `Binding: ${
+                                String(binding)
+                            } not found in frame: ${frame}`,
+                        );
+                    }
+                    value = bound;
+                }
+                entries.push([key, value]);
+            }
+            const boundInput = Object.fromEntries(entries);
+
+            const maybeArray = f(boundInput as never);
+            if (
+                typeof (maybeArray as Promise<unknown[]>).then === "function"
+            ) {
+                // async path
+                const p = (maybeArray as Promise<unknown[]>).then((arr) => {
+                    processOutputs(frame, arr);
+                });
+                promises.push(p);
+            } else {
+                // sync path
+                processOutputs(frame, maybeArray as unknown[]);
+            }
+        }
+
+        if (promises.length > 0) {
+            return Promise.all(promises).then(() => result);
+        }
+        return result;
+    }
+
+    async queryAsync<
+        TFunction extends (...args: never[]) => Promise<unknown[]>,
+        TInputMapping extends Record<string, unknown>,
+        TOutputMapping extends Record<string, symbol>,
+        TFunctionOutput = Awaited<ReturnType<TFunction>> extends (infer U)[] ? U
+            : never,
+        TNewFrame extends Frame =
+            & TFrame
+            & ExtractSymbolMappings<TOutputMapping, TFunctionOutput>,
+    >(
+        f: TFunction,
+        input: TInputMapping,
+        output: TOutputMapping,
+    ): Promise<Frames<TNewFrame>> {
         const result = new Frames<TNewFrame>();
 
         for (const frame of this) {
@@ -153,8 +257,8 @@ export class Frames<TFrame extends Frame = Frame> extends Array<TFrame> {
             }
             const boundInput = Object.fromEntries(entries);
 
-            // Execute the function - expect array of bindings
-            const functionOutputArray = f(
+            // Execute the function - expect array of bindings (async)
+            const functionOutputArray = await f(
                 boundInput as Parameters<TFunction>[0],
             );
 

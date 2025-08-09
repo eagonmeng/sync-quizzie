@@ -73,6 +73,28 @@ export function registerBasicCases(runner: TestRunner) {
         assertEqual(Recorder.order.length, 3);
     });
 
+    runner.test("fanout over list via async query", async () => {
+        const Sync = new SyncConcept();
+        setLogging(Sync, Logging.TRACE);
+        const concepts = {
+            Button: new ButtonConcept(),
+            Counter: new CounterConcept(),
+            Notification: new NotificationConcept(),
+            List: new ListConcept(),
+            Recorder: new RecorderConcept(),
+        };
+        const { Button, Counter, Notification, List, Recorder } = Sync
+            .instrument(concepts);
+        const syncs = makeSyncs(Button, Counter, Notification, List, Recorder);
+        Sync.register(syncs);
+
+        List.add({ value: 1 });
+        List.add({ value: 2 });
+        List.add({ value: 3 });
+        await Button.clicked({ kind: "fanout-async" });
+        assertEqual(Recorder.order.length, 3);
+    });
+
     runner.test("prevent double fire by synced marks across when actions", async () => {
         const Sync = new SyncConcept();
         setLogging(Sync, Logging.TRACE);

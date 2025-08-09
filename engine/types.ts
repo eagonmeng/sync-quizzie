@@ -18,7 +18,7 @@ export interface ActionPattern {
 
 interface SyncDeclaration {
     when: ActionPattern[];
-    where?: (frames: Frames) => Frames;
+    where?: (frames: Frames) => Frames | Promise<Frames>;
     then: ActionPattern[];
 }
 

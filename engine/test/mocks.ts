@@ -47,6 +47,11 @@ export class ListConcept {
     _items(_: Empty): { value: number }[] {
         return this.values.map((v) => ({ value: v }));
     }
+    async _itemsAsync(_: Empty): Promise<{ value: number }[]> {
+        // simulate async read
+        await Promise.resolve();
+        return this.values.map((v) => ({ value: v }));
+    }
 }
 
 // Concept to echo or record action orders for flow validation

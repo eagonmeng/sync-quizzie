@@ -96,7 +96,10 @@ export class SyncConcept {
                     frames,
                 );
                 if (sync.where !== undefined) {
-                    frames = sync.where(frames);
+                    const maybeFrames = sync.where(frames);
+                    frames = maybeFrames instanceof Promise
+                        ? await maybeFrames
+                        : maybeFrames;
                     this.logFrames("After processing \`where\`:", frames);
                 }
                 await this.addThen(frames, sync, actionSymbols);

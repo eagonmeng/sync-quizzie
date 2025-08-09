@@ -47,6 +47,21 @@ export function makeSyncs(
         then: actions([Recorder.record, { tag }]),
     });
 
+    // Async query variant to ensure async queries are supported
+    const FanoutOverListAsync = ({ value, tag }: Vars) => ({
+        when: actions([Button.clicked, { kind: "fanout-async" }, {}]),
+        where: async (frames: Frames) => {
+            const withValues = await frames.queryAsync(List._itemsAsync, {}, {
+                value,
+            });
+            return withValues.map((frame) => ({
+                ...frame,
+                [tag]: `v:${String(frame[value])}`,
+            }));
+        },
+        then: actions([Recorder.record, { tag }]),
+    });
+
     // Ensure each sync fires once per flow and marks as synced: chain record
     const ChainRecordA = ({ tag, next }: Vars) => ({
         when: actions([Recorder.record, { tag }, {}]),
@@ -82,6 +97,7 @@ export function makeSyncs(
         ButtonIncrements,
         NotifyOn3,
         FanoutOverList,
+        FanoutOverListAsync,
         ChainRecordA,
         PreventDoubleFire,
     } as const;
