@@ -38,4 +38,3 @@ export class UserConcept {
         return id ? [{ user: id }] : [];
     }
 }
-

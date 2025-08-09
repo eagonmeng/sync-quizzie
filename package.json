@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "tsx server.ts",
-    "start": "tsx server.ts"
+    "start": "tsx server.ts",
+    "test:engine": "tsx engine/test/run.ts"
   },
   "dependencies": {
     "@juit/qrcode": "^1.0.58",

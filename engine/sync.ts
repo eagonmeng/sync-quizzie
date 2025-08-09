@@ -151,9 +151,8 @@ export class SyncConcept {
         actionSymbols: symbol[],
     ) {
         const thens: [InstrumentedAction, ActionArguments][] = [];
-        frame_loop:
         for (const frame of frames) {
-            // Confirm one more time that sync has not occurred yet
+            // Collect when actions for marking after executing thens
             const whenActions: ActionRecord[] = [];
             for (const actionSymbol of actionSymbols) {
                 const actionId = frame[actionSymbol];
@@ -163,7 +162,6 @@ export class SyncConcept {
                 const action = this.Action._getById(actionId);
                 if (action?.synced) {
                     whenActions.push(action);
-                    if (action.synced.has(sync.sync)) continue frame_loop;
                 } else {
                     throw new Error(
                         `Action ${action} missing or missing synced Map.`,
