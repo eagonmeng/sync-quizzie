@@ -90,13 +90,12 @@ inputs and outputs, while `VERBOSE` dives deep and gives a complete account of
 provenance and the processing of each record, and which synchronizations
 matched.
 
-### Why this approach?
+### License
 
-- **Single purpose units**: concepts isolate responsibilities and state
-- **Declarative composition**: synchronizations make cross‑concept behavior
-  explicit
-- **Easier change**: local edits with clear flow; fewer hidden couplings
+Copyright (c) MIT CSAIL. All rights reserved.
 
-Enjoy exploring, and start by reading
-[`concept-design.mdc`](.cursor/rules/concept-design.mdc) under `.cursor/rules`,
-and skimming `specs/`, `concepts/`, and `syncs/`.
+This project is licensed under the Creative Commons
+Attribution-NonCommercial-ShareAlike 4.0 International.
+
+- SPDX: CC-BY-NC-SA-4.0
+- https://creativecommons.org/licenses/by-nc-sa/4.0/

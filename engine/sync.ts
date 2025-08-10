@@ -1,3 +1,9 @@
+/*
+  Copyright (c) Eagon Meng, MIT CSAIL. All rights reserved.
+  SPDX-License-Identifier: CC-BY-NC-SA-4.0
+  Licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International.
+  See https://creativecommons.org/licenses/by-nc-sa/4.0/
+*/
 import { $vars } from "./vars.ts";
 import { inspect, uuid } from "./util.ts";
 import { ActionConcept, ActionRecord } from "./actions.ts";
